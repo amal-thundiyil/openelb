@@ -25,7 +25,7 @@ import (
 	"github.com/openelb/openelb/pkg/constant"
 	"github.com/openelb/openelb/pkg/speaker/bgp"
 	"github.com/openelb/openelb/pkg/util"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,6 +40,7 @@ import (
 
 var (
 	syncStatusPeriod = 30
+	policyField      = ".spec.policy"
 )
 
 // BgpConfReconciler reconciles a BgpConf object
@@ -50,9 +51,15 @@ type BgpConfReconciler struct {
 	cleaned bool
 }
 
-// +kubebuilder:rbac:groups=network.kubesphere.io,resources=bgpconfs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=network.kubesphere.io,resources=bgpconfs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=network.kubesphere.io,resources=bgpconfs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=network.kubesphere.io,resources=bgpconfs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=network.kubesphere.io,resources=bgpconfs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=get
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster BgpConf CRD closer to the desired state.
 func (r *BgpConfReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
@@ -85,7 +92,7 @@ func (r *BgpConfReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	node := &v1.Node{}
+	node := &corev1.Node{}
 	rack := ""
 	err = r.Get(context.Background(), types.NamespacedName{Name: util.GetNodeName()}, node)
 	if err != nil {
@@ -121,6 +128,27 @@ func (r *BgpConfReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, r.reconfigPeers()
 }
 
+// ReconcilePolicyCM is part of the reconciliation loop of BgpConf which aims to
+// move the current state of the policy ConfigMaps closer to the desired state.
+func (r *BgpConfReconciler) ReconcilePolicyCM(ctx context.Context, bgpConf v1alpha2.BgpConf) (ctrl.Result, error) {
+	// Add the policyVersion as an annotation on the BgpConf Pods.
+	// var policyVersion string
+	if bgpConf.Spec.Policy != "" {
+		policyName := bgpConf.Spec.Policy
+		foundPolicy := &corev1.ConfigMap{}
+		err := r.Get(ctx, types.NamespacedName{Name: policyName, Namespace: bgpConf.Namespace}, foundPolicy)
+		if err != nil {
+			// If a policy ConfigMap name is provided, then it must exist.
+			// TODO: Create an Event for the user to understand why their reconcile is failing.
+			return ctrl.Result{}, err
+		}
+
+		// Hash the data in some way, or just use the version of the Object
+		// policyVersion = foundPolicy.ResourceVersion
+	}
+	return ctrl.Result{}, nil
+}
+
 func (r *BgpConfReconciler) reconfigPeers() error {
 	ctx := context.Background()
 
@@ -131,7 +159,7 @@ func (r *BgpConfReconciler) reconfigPeers() error {
 	if err != nil {
 		return err
 	}
-	node := &v1.Node{}
+	node := &corev1.Node{}
 	err = r.Get(ctx, types.NamespacedName{Name: util.GetNodeName()}, node)
 	if err != nil {
 		return err
@@ -201,8 +229,8 @@ func (r *BgpConfReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	np := predicate.Funcs{
 		UpdateFunc: func(evt event.UpdateEvent) bool {
-			old := evt.ObjectOld.(*v1.Node)
-			new := evt.ObjectNew.(*v1.Node)
+			old := evt.ObjectOld.(*corev1.Node)
+			new := evt.ObjectNew.(*corev1.Node)
 
 			oldHaveLabel := false
 			if old.Labels != nil {
@@ -225,7 +253,7 @@ func (r *BgpConfReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return false
 		},
 	}
-	return ctl.Watch(&source.Kind{Type: &v1.Node{}}, &EnqueueRequestForNode{Client: r.Client, peer: false}, np)
+	return ctl.Watch(&source.Kind{Type: &corev1.Node{}}, &EnqueueRequestForNode{Client: r.Client, peer: false}, np)
 }
 
 func SetupBgpConfReconciler(bgpServer *bgp.Bgp, mgr ctrl.Manager) error {
