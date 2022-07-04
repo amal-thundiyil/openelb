@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"bytes"
 	"encoding/json"
+
 	"github.com/golang/protobuf/jsonpb"
 	api "github.com/osrg/gobgp/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -177,7 +178,7 @@ type AfiSafi struct {
 	AddPaths          *AddPaths          `json:"addPaths,omitempty"`
 }
 
-func (c BgpPeerSpec) ConverToGoBgpPeer() (*api.Peer, error) {
+func (c BgpPeerSpec) ToGoBgpPeer() (*api.Peer, error) {
 	c.NodeSelector = nil
 
 	jsonBytes, err := json.Marshal(c)
@@ -190,7 +191,7 @@ func (c BgpPeerSpec) ConverToGoBgpPeer() (*api.Peer, error) {
 	return &result, m.Unmarshal(bytes.NewReader(jsonBytes), &result)
 }
 
-func ConverStatusFromGoBgpPeer(peer *api.Peer) (NodePeerStatus, error) {
+func GetStatusFromGoBgpPeer(peer *api.Peer) (NodePeerStatus, error) {
 	var (
 		nodePeerStatus NodePeerStatus
 	)
