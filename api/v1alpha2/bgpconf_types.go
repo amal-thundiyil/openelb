@@ -103,7 +103,7 @@ func (c BgpConfSpec) ToGoBgpGlobalConf() (*api.Global, error) {
 	}
 
 	var result api.Global
-	m := jsonpb.Unmarshaler{}
+	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 	return &result, m.Unmarshal(bytes.NewReader(jsonBytes), &result)
 }
 
