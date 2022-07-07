@@ -27,14 +27,18 @@ import (
 	"github.com/openelb/openelb/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -73,6 +77,11 @@ func (r *BgpConfReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	clone := instance.DeepCopy()
+
+	err = r.ReconcilePolicyCM(ctx, clone)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	if util.IsDeletionCandidate(clone, constant.FinalizerName) {
 		err := r.BgpServer.HandleBgpGlobalConfig(clone, "", true)
@@ -128,25 +137,68 @@ func (r *BgpConfReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, r.reconfigPeers()
 }
 
-// ReconcilePolicyCM is part of the reconciliation loop of BgpConf which aims to
-// move the current state of the policy ConfigMaps closer to the desired state.
-func (r *BgpConfReconciler) ReconcilePolicyCM(ctx context.Context, bgpConf v1alpha2.BgpConf) (ctrl.Result, error) {
-	// Add the policyVersion as an annotation on the BgpConf Pods.
-	// var policyVersion string
-	if bgpConf.Spec.Policy != "" {
-		policyName := bgpConf.Spec.Policy
-		foundPolicy := &corev1.ConfigMap{}
-		err := r.Get(ctx, types.NamespacedName{Name: policyName, Namespace: bgpConf.Namespace}, foundPolicy)
-		if err != nil {
-			// If a policy ConfigMap name is provided, then it must exist.
-			// TODO: Create an Event for the user to understand why their reconcile is failing.
-			return ctrl.Result{}, err
-		}
-
-		// Hash the data in some way, or just use the version of the Object
-		// policyVersion = foundPolicy.ResourceVersion
+// ReconcilePolicyCM is part of the reconciliation loop of BgpConf which aims to move
+// the current state of the BgpConf Spec closer to the desired state by adding the Policy name.
+func (r *BgpConfReconciler) ReconcilePolicyCM(ctx context.Context, bgpConf *v1alpha2.BgpConf) error {
+	policyVersion, err := r.getPolicyVersion(ctx, bgpConf)
+	if err != nil {
+		return err
 	}
-	return ctrl.Result{}, nil
+	if bgpConf.Annotations == nil {
+		bgpConf.Annotations = make(map[string]string)
+	}
+	// Add the policyVersion as an annotation on the BgpConf Pods.
+	bgpConf.Annotations[constant.OpenELBPolicyAnnotationKey] = policyVersion
+	err = r.Client.Update(ctx, bgpConf)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// getPolicyVersion returns the object version of the Policy ConfigMap.
+func (r *BgpConfReconciler) getPolicyVersion(ctx context.Context, bgpConf *v1alpha2.BgpConf) (string, error) {
+	var policyVersion string
+	if bgpConf.Spec.Policy == "" {
+		return policyVersion, nil
+	}
+	policyName := bgpConf.Spec.Policy
+	foundPolicy := &corev1.ConfigMap{}
+	err := r.Get(ctx, types.NamespacedName{Name: policyName, Namespace: bgpConf.Namespace}, foundPolicy)
+	if err != nil {
+		// If a policy ConfigMap name is provided, then it must exist.
+		// TODO: Create an Event for the user to understand why their reconcile is failing.
+		if errors.IsNotFound(err) {
+			return policyVersion, nil
+		}
+		return policyVersion, err
+	}
+	// Hash the data in some way, or just use the version of the Object
+	policyVersion = foundPolicy.ResourceVersion
+	return policyVersion, nil
+}
+
+func (r *BgpConfReconciler) Map(configMap handler.MapObject) []reconcile.Request {
+	attachedConfigDeployments := &v1alpha2.BgpConfList{}
+	listOps := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(policyField, configMap.Meta.GetName()),
+		Namespace:     configMap.Meta.GetNamespace(),
+	}
+	err := r.List(context.TODO(), attachedConfigDeployments, listOps)
+	if err != nil {
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(attachedConfigDeployments.Items))
+	for i, item := range attachedConfigDeployments.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      item.GetName(),
+				Namespace: item.GetNamespace(),
+			},
+		}
+	}
+	return requests
 }
 
 func (r *BgpConfReconciler) reconfigPeers() error {
@@ -218,9 +270,27 @@ func (r *BgpConfReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		},
 	}
 
+	// The policy field must be indexed by the manager, so that we will be able to lookup BgpConf by a referenced ConfigMap name.
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha2.BgpConf{}, policyField, func(rawObj runtime.Object) []string {
+		// Extract the ConfigMap name from the BgpConf Spec, if one is provided
+		bgpConf := rawObj.(*v1alpha2.BgpConf)
+		if bgpConf.Spec.Policy == "" {
+			return nil
+		}
+		return []string{bgpConf.Spec.Policy}
+	})
+	if err != nil {
+		return err
+	}
+
 	ctl, err := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha2.BgpConf{}).
 		WithEventFilter(p).
+		Watches(
+			&source.Kind{Type: &corev1.ConfigMap{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: r},
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Named("BgpConfController").
 		Build(r)
 	if err != nil {
