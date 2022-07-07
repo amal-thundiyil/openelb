@@ -116,6 +116,15 @@ var (
 		},
 		Status: v1alpha2.BgpPeerStatus{},
 	}
+
+	policyConfigMap = &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "policy",
+			Namespace: "default",
+		},
+		Data: map[string]string{},
+	}
 )
 
 func TestAPIs(t *testing.T) {
@@ -259,7 +268,6 @@ var _ = Describe("Test GoBGP Controller", func() {
 					if clone.Status.NodesConfStatus[util.GetNodeName()].RouterId == bgpConf.Spec.RouterId {
 						return true
 					}
-
 					return false
 				}), 35*time.Second).Should(Equal(false))
 			})
@@ -466,6 +474,40 @@ var _ = Describe("Test GoBGP Controller", func() {
 				})
 			})
 		})
+
+		When("GoBGP policy name", func() {
+			BeforeEach(func() {
+				clone := policyConfigMap.DeepCopy()
+				err := util.Create(context.Background(), client.Client, clone, func() error {
+					return nil
+				})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				clone := policyConfigMap.DeepCopy()
+				err := client.Client.Delete(context.Background(), clone)
+				Expect(err).ToNot(HaveOccurred())
+				Eventually(func() bool {
+					err = client.Client.Get(context.Background(), types.NamespacedName{
+						Namespace: clone.Namespace,
+						Name:      clone.Name,
+					}, clone)
+					return k8serrors.IsNotFound(err)
+				}, 3*time.Second).Should(Equal(true))
+			})
+			Context("is added to BgpConf", func() {
+				It("should add to BgpConf annotation", func() {
+					policyCMClone := policyConfigMap.DeepCopy()
+					updateBgpConf(bgpConf, func(dst *v1alpha2.BgpConf) {
+						dst.Spec.Policy = policyCMClone.GetObjectMeta().GetName()
+					})
+					Eventually(util.Check(context.Background(), client.Client, bgpConf, func() bool {
+						return bgpConf.ObjectMeta.Annotations[constant.OpenELBPolicyAnnotationKey] == policyCMClone.ResourceVersion
+					}), 35*time.Second).Should(Equal(true))
+				})
+			})
+		})
 	})
 })
 
@@ -496,6 +538,22 @@ func checkBgpPeer(bgpPeer *v1alpha2.BgpPeer, fn func(dst *v1alpha2.BgpPeer) bool
 }
 
 func updateBgpConf(origin *v1alpha2.BgpConf, fn func(dst *v1alpha2.BgpConf)) {
+	clone := origin.DeepCopy()
+
+	retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		err := client.Client.Get(context.Background(), types.NamespacedName{
+			Namespace: clone.Namespace,
+			Name:      clone.Name,
+		}, clone)
+		if err != nil {
+			return err
+		}
+		fn(clone)
+		return client.Client.Update(context.Background(), clone)
+	})
+}
+
+func updatePolicyCM(origin *corev1.ConfigMap, fn func(dst *corev1.ConfigMap)) {
 	clone := origin.DeepCopy()
 
 	retry.RetryOnConflict(retry.DefaultBackoff, func() error {
