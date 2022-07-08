@@ -29,7 +29,7 @@ vet:
 
 # Run tests
 test: fmt vet
-	KUBEBUILDER_ASSETS=$(shell $(GOBIN)/setup-envtest use -p path 1.19.x) go test -v  ./api/... ./pkg/controllers/... ./pkg/...  -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(GOBIN)/setup-envtest use -p path 1.19.x)" go test -v  ./api/... ./pkg/controllers/... ./pkg/...  -coverprofile cover.out
 
 # Build manager binary
 manager: fmt vet
@@ -59,7 +59,7 @@ generate: controller-gen
 
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.0
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.0
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
@@ -80,7 +80,7 @@ release: deploy
 	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --platform linux/amd64,linux/arm64 -t ${IMG_PROXY} -f ./images/proxy/Dockerfile . --push
 	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --platform linux/amd64,linux/arm64 -t ${IMG_FORWARD} -f ./images/forward/Dockerfile . --push
 
-install-travis:
+install-tools:
 	echo "install kubebuilder/kustomize etc."
 	chmod +x ./hack/*.sh
 	./hack/install_tools.sh

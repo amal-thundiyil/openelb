@@ -553,22 +553,6 @@ func updateBgpConf(origin *v1alpha2.BgpConf, fn func(dst *v1alpha2.BgpConf)) {
 	})
 }
 
-func updatePolicyCM(origin *corev1.ConfigMap, fn func(dst *corev1.ConfigMap)) {
-	clone := origin.DeepCopy()
-
-	retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		err := client.Client.Get(context.Background(), types.NamespacedName{
-			Namespace: clone.Namespace,
-			Name:      clone.Name,
-		}, clone)
-		if err != nil {
-			return err
-		}
-		fn(clone)
-		return client.Client.Update(context.Background(), clone)
-	})
-}
-
 func updateBgpPeer(origin *v1alpha2.BgpPeer, fn func(dst *v1alpha2.BgpPeer)) {
 	clone := origin.DeepCopy()
 

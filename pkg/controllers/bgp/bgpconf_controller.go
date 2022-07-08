@@ -140,6 +140,7 @@ func (r *BgpConfReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 // ReconcilePolicyCM is part of the reconciliation loop of BgpConf which aims to move
 // the current state of the BgpConf Spec closer to the desired state by adding the Policy name.
 func (r *BgpConfReconciler) ReconcilePolicyCM(ctx context.Context, bgpConf *v1alpha2.BgpConf) error {
+	ctrl.Log.Info("enter BgpConf policy ConfigMap reconcilation")
 	policyVersion, err := r.getPolicyVersion(ctx, bgpConf)
 	if err != nil {
 		return err
@@ -169,12 +170,14 @@ func (r *BgpConfReconciler) getPolicyVersion(ctx context.Context, bgpConf *v1alp
 		// If a policy ConfigMap name is provided, then it must exist.
 		// TODO: Create an Event for the user to understand why their reconcile is failing.
 		if errors.IsNotFound(err) {
+			ctrl.Log.Info("could not find BgpConf policy ConfigMap " + bgpConf.Spec.Policy)
 			return policyVersion, nil
 		}
 		return policyVersion, err
 	}
 	// Hash the data in some way, or just use the version of the Object
 	policyVersion = foundPolicy.ResourceVersion
+	ctrl.Log.Info("found BgpConf policy ConfigMap " + bgpConf.Spec.Policy + " with resource version " + policyVersion)
 	return policyVersion, nil
 }
 
@@ -243,6 +246,7 @@ func shouldReconcile(obj runtime.Object) bool {
 }
 
 func (r *BgpConfReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	ctrl.Log.Info("setup BgpConf Reconciler with manager")
 	p := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			if util.DutyOfCNI(nil, e.Meta) {
