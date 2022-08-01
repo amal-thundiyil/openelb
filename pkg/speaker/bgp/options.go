@@ -4,7 +4,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/osrg/gobgp/pkg/server"
 	"github.com/spf13/pflag"
-	clientset "k8s.io/client-go/kubernetes"
 )
 
 type Options struct {
@@ -24,7 +23,7 @@ func (options *Options) AddFlags(fs *pflag.FlagSet) {
 type Bgp struct {
 	bgpServer *server.BgpServer
 	conf      string
-	clientset *clientset.Clientset
+	client    Client
 	rack      string
 	log       logr.Logger
 }

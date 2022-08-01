@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/pflag"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/util/term"
-	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	cliflag "k8s.io/component-base/cli/flag"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -98,10 +98,13 @@ func Run(c *options.OpenELBManagerOptions) error {
 	stopCh := ctrl.SetupSignalHandler()
 
 	// For layer2
-	k8sClient := clientset.NewForConfigOrDie(ctrl.GetConfigOrDie())
+	k8sClient := kubernetes.NewForConfigOrDie(ctrl.GetConfigOrDie())
 	leader.LeaderElector(stopCh, k8sClient, *c.Leader)
 
-	bgpServer := bgpd.NewGoBgpd(c.Bgp, k8sClient)
+	bgpClient := bgpd.Client{
+		Clientset: k8sClient,
+	}
+	bgpServer := bgpClient.NewGoBgpd(c.Bgp)
 
 	// Setup all Controllers
 	err = ipam.SetupIPAM(mgr)

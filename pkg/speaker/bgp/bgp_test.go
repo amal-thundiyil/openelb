@@ -1,18 +1,15 @@
 package bgp
 
 import (
-	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	bgpapi "github.com/openelb/openelb/api/v1alpha2"
 	"github.com/openelb/openelb/pkg/constant"
-	"github.com/openelb/openelb/pkg/manager/client"
-	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -51,16 +48,18 @@ var _ = BeforeSuite(func() {
 	bgpOptions := &Options{
 		GrpcHosts: ":50052",
 	}
-	k8sClient := clientset.NewForConfigOrDie(ctrl.GetConfigOrDie())
+	// err := client.Client.Create(context.Background(), ns)
+	// Expect(err).ToNot(HaveOccurred())
 
-	err := client.Client.Create(context.Background(), ns)
-	Expect(err).ToNot(HaveOccurred())
+	// conf, err := os.ReadFile("test.toml")
+	// Expect(err).ToNot(HaveOccurred())
 
-	conf, err := os.ReadFile("test.toml")
-	Expect(err).ToNot(HaveOccurred())
-	cm.Data = map[string]string{"conf": string(conf)}
+	// cm.Data = map[string]string{"conf": string(conf)}
 
-	b = NewGoBgpd(bgpOptions, k8sClient)
+	c := Client{
+		Clientset: fake.NewSimpleClientset(),
+	}
+	b = c.NewGoBgpd(bgpOptions)
 	ch = make(chan struct{})
 
 	go b.Start(ch)
