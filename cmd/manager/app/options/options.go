@@ -9,7 +9,7 @@ import (
 )
 
 type OpenELBManagerOptions struct {
-	Bgp *bgp.BgpOptions
+	Bgp *bgp.Options
 	*manager.GenericOptions
 	LogOptions *log.Options
 	Leader     *leader.Options
@@ -17,7 +17,7 @@ type OpenELBManagerOptions struct {
 
 func NewOpenELBManagerOptions() *OpenELBManagerOptions {
 	return &OpenELBManagerOptions{
-		Bgp:            bgp.NewBgpOptions(),
+		Bgp:            bgp.NewOptions(),
 		GenericOptions: manager.NewGenericOptions(),
 		LogOptions:     log.NewOptions(),
 		Leader:         leader.NewOptions(),

@@ -1,18 +1,24 @@
 package bgp
 
 import (
+	"sync"
+
+	"github.com/openelb/openelb/pkg/constant"
 	"github.com/openelb/openelb/pkg/speaker"
+	"github.com/openelb/openelb/pkg/util"
 	api "github.com/osrg/gobgp/api"
+	"github.com/osrg/gobgp/pkg/config"
 	"github.com/osrg/gobgp/pkg/server"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientset "k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sync"
 )
 
 var _ speaker.Speaker = &Bgp{}
 
-func NewGoBgpd(bgpOptions *BgpOptions) *Bgp {
+func NewGoBgpd(bgpOptions *Options, client *clientset.Clientset) *Bgp {
 	maxSize := 4 << 20 //4MB
 	grpcOpts := []grpc.ServerOption{grpc.MaxRecvMsgSize(maxSize), grpc.MaxSendMsgSize(maxSize)}
 
@@ -20,15 +26,36 @@ func NewGoBgpd(bgpOptions *BgpOptions) *Bgp {
 
 	return &Bgp{
 		bgpServer: bgpServer,
+		clientset: client,
 		log:       ctrl.Log.WithName("bgpserver"),
 	}
 }
 
+func (b *Bgp) InitGoBgpConf() error {
+	cmClient := b.clientset.CoreV1().ConfigMaps(util.EnvNamespace())
+	cm, err := cmClient.Get(context.TODO(), constant.OpenELBBgpConfigMap, metav1.GetOptions{})
+	if err != nil {
+		b.log.Error(err, "error finding ConfigMap %s", constant.OpenELBBgpConfigMap)
+		return err
+	}
+	path, err := WriteToTempFile(cm.Data["conf"])
+	if err != nil {
+		return err
+	}
+	initialConfig, err := config.ReadConfigFile(path, "toml")
+	ctrl.Log.Info("ye le path", "path", path)
+	if err != nil {
+		return err
+	}
+	x, err := config.InitialConfig(context.Background(), b.bgpServer, initialConfig, false)
+	ctrl.Log.Info("ye meri mohabbat", "struct", x, "error", err)
+	return err
+}
+
 func (b *Bgp) run(stopCh <-chan struct{}) {
 	log := ctrl.Log.WithName("gobgpd")
-
 	log.Info("gobgpd starting")
-	go b.bgpServer.Serve()
+	go b.InitGoBgpConf()
 	<-stopCh
 	log.Info("gobgpd ending")
 	err := b.bgpServer.StopBgp(context.Background(), &api.StopBgpRequest{})

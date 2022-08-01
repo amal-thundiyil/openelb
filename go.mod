@@ -3,6 +3,7 @@ module github.com/openelb/openelb
 go 1.16
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/coreos/go-iptables v0.4.2
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/go-logr/logr v0.1.0
@@ -18,6 +19,7 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/osrg/gobgp v0.0.0-20210101133947-496b372f7b8d
 	github.com/pelletier/go-toml v1.4.0 // indirect
+	github.com/projectcalico/go-json v0.0.0-20161128004156-6219dc7339ba
 	github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
 	github.com/prometheus/client_golang v1.12.0
 	github.com/spf13/cobra v1.0.0

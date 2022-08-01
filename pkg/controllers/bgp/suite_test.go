@@ -34,6 +34,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -170,7 +171,9 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(mgr).ToNot(BeNil())
 
 	// Setup all Controllers
-	bgpServer = bgp.NewGoBgpd(bgp.NewBgpOptions())
+
+	k8sClient := clientset.NewForConfigOrDie(ctrl.GetConfigOrDie())
+	bgpServer = bgp.NewGoBgpd(bgp.NewOptions(), k8sClient)
 	bgpServer.Start(stopCh)
 	err = SetupBgpPeerReconciler(bgpServer, mgr)
 	Expect(err).ToNot(HaveOccurred())

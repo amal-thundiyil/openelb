@@ -1,17 +1,42 @@
 package bgp
 
 import (
+	"os"
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	bgpapi "github.com/openelb/openelb/api/v1alpha2"
+	"github.com/openelb/openelb/pkg/constant"
+	"github.com/openelb/openelb/pkg/manager/client"
+	"golang.org/x/net/context"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientset "k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"testing"
 )
 
 var (
 	b  *Bgp
 	ch chan struct{}
+)
+
+var (
+	cm = &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constant.OpenELBBgpConfigMap,
+			Namespace: constant.OpenELBNamespace,
+		},
+		Data: map[string]string{},
+	}
+
+	ns = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constant.OpenELBNamespace,
+		},
+	}
 )
 
 func TestServerd(t *testing.T) {
@@ -23,11 +48,19 @@ func TestServerd(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	By("Init bgp server and config")
-	bgpOptions := &BgpOptions{
+	bgpOptions := &Options{
 		GrpcHosts: ":50052",
 	}
+	k8sClient := clientset.NewForConfigOrDie(ctrl.GetConfigOrDie())
 
-	b = NewGoBgpd(bgpOptions)
+	err := client.Client.Create(context.Background(), ns)
+	Expect(err).ToNot(HaveOccurred())
+
+	conf, err := os.ReadFile("test.toml")
+	Expect(err).ToNot(HaveOccurred())
+	cm.Data = map[string]string{"conf": string(conf)}
+
+	b = NewGoBgpd(bgpOptions, k8sClient)
 	ch = make(chan struct{})
 
 	go b.Start(ch)

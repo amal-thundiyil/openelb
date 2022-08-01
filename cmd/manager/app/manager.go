@@ -95,7 +95,13 @@ func Run(c *options.OpenELBManagerOptions) error {
 		return err
 	}
 
-	bgpServer := bgpd.NewGoBgpd(c.Bgp)
+	stopCh := ctrl.SetupSignalHandler()
+
+	// For layer2
+	k8sClient := clientset.NewForConfigOrDie(ctrl.GetConfigOrDie())
+	leader.LeaderElector(stopCh, k8sClient, *c.Leader)
+
+	bgpServer := bgpd.NewGoBgpd(c.Bgp, k8sClient)
 
 	// Setup all Controllers
 	err = ipam.SetupIPAM(mgr)
@@ -120,18 +126,13 @@ func Run(c *options.OpenELBManagerOptions) error {
 		return err
 	}
 
-	stopCh := ctrl.SetupSignalHandler()
-
-	//For layer2
-	k8sClient := clientset.NewForConfigOrDie(ctrl.GetConfigOrDie())
-	leader.LeaderElector(stopCh, k8sClient, *c.Leader)
-
 	//For gobgp
 	err = speaker.RegisterSpeaker(constant.OpenELBProtocolBGP, bgpServer)
 	if err != nil {
 		setupLog.Error(err, "unable to register bgp speaker")
 		return err
 	}
+
 	keepalive := vip.NewKeepAlived(k8sClient, &vip.KeepAlivedConfig{
 		Args: []string{fmt.Sprintf("--services-configmap=%s/%s", util.EnvNamespace(), constant.OpenELBVipConfigMap)},
 	})
