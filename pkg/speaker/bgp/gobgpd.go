@@ -59,7 +59,7 @@ func (b *Bgp) InitGoBgpConf() error {
 func (b *Bgp) run(stopCh <-chan struct{}) {
 	log := ctrl.Log.WithName("gobgpd")
 	log.Info("gobgpd starting")
-	go b.InitGoBgpConf()
+	go b.bgpServer.Serve()
 	<-stopCh
 	log.Info("gobgpd ending")
 	err := b.bgpServer.StopBgp(context.Background(), &api.StopBgpRequest{})

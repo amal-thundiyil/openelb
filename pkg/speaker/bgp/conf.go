@@ -6,13 +6,29 @@ import (
 	"path/filepath"
 
 	"github.com/openelb/openelb/api/v1alpha2"
+	api "github.com/osrg/gobgp/api"
 	"github.com/osrg/gobgp/pkg/config"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (b *Bgp) HandleBgpGlobalConfig(global *v1alpha2.BgpConf, rack string, delete bool) error {
-	return nil
+	b.rack = rack
+
+	if delete {
+		return b.bgpServer.StopBgp(context.Background(), nil)
+	}
+
+	request, err := global.Spec.ToGoBgpGlobalConf()
+	if err != nil {
+		return err
+	}
+	ctrl.Log.Info("mein idhar tak pohochke mar gaya")
+	b.bgpServer.StopBgp(context.Background(), nil)
+	return b.bgpServer.StartBgp(context.Background(), &api.StartBgpRequest{
+		Global: request,
+	})
 }
 
 // func (b *Bgp) RestartServer(global *api.Global) error {
