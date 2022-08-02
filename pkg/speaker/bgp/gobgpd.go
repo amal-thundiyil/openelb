@@ -3,11 +3,15 @@ package bgp
 import (
 	"sync"
 
+	"github.com/openelb/openelb/pkg/constant"
 	"github.com/openelb/openelb/pkg/speaker"
+	"github.com/openelb/openelb/pkg/util"
 	api "github.com/osrg/gobgp/api"
+	"github.com/osrg/gobgp/pkg/config"
 	"github.com/osrg/gobgp/pkg/server"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -31,31 +35,31 @@ func (c *Client) NewGoBgpd(bgpOptions *Options) *Bgp {
 	}
 }
 
-// func (b *Bgp) InitGoBgpConf() error {
-// 	cmClient := b.client.Clientset.CoreV1().ConfigMaps(util.EnvNamespace())
-// 	cm, err := cmClient.Get(context.TODO(), constant.OpenELBBgpConfigMap, metav1.GetOptions{})
-// 	if err != nil {
-// 		b.log.Error(err, "error finding ConfigMap %s", constant.OpenELBBgpConfigMap)
-// 		return err
-// 	}
-// 	path, err := WriteToTempFile(cm.Data["conf"])
-// 	if err != nil {
-// 		return err
-// 	}
-// 	initialConfig, err := config.ReadConfigFile(path, "toml")
-// 	ctrl.Log.Info("ye le path", "path", path)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	x, err := config.InitialConfig(context.Background(), b.bgpServer, initialConfig, false)
-// 	ctrl.Log.Info("ye meri mohabbat", "struct", x, "error", err)
-// 	return err
-// }
+func (b *Bgp) InitGoBgpConf() error {
+	ctrl.Log.Info("gert com", "env", util.EnvNamespace())
+	cmClient := b.client.Clientset.CoreV1().ConfigMaps(util.EnvNamespace())
+	cm, err := cmClient.Get(context.TODO(), constant.OpenELBBgpConfigMap, metav1.GetOptions{})
+	ctrl.Log.Info("ran client", "cmclient", cm, "err", err)
+	if err != nil {
+		b.log.Error(err, "error finding ConfigMap", "cm", constant.OpenELBBgpConfigMap)
+		return err
+	}
+	path, err := WriteToTempFile(cm.Data["conf"])
+	if err != nil {
+		return err
+	}
+	initialConfig, err := config.ReadConfigFile(path, "toml")
+	if err != nil {
+		return err
+	}
+	_, err = config.InitialConfig(context.Background(), b.bgpServer, initialConfig, false)
+	return err
+}
 
 func (b *Bgp) run(stopCh <-chan struct{}) {
 	log := ctrl.Log.WithName("gobgpd")
 	log.Info("gobgpd starting")
-	go b.bgpServer.Serve()
+	go b.InitGoBgpConf()
 	<-stopCh
 	log.Info("gobgpd ending")
 	err := b.bgpServer.StopBgp(context.Background(), &api.StopBgpRequest{})

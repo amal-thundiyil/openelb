@@ -8,7 +8,6 @@ import (
 	networkv1alpha2 "github.com/openelb/openelb/api/v1alpha2"
 	"github.com/openelb/openelb/cmd/manager/app/options"
 	"github.com/openelb/openelb/pkg/constant"
-	"github.com/openelb/openelb/pkg/controllers/bgp"
 	"github.com/openelb/openelb/pkg/controllers/ipam"
 	"github.com/openelb/openelb/pkg/controllers/lb"
 	"github.com/openelb/openelb/pkg/leader-elector"
@@ -114,15 +113,15 @@ func Run(c *options.OpenELBManagerOptions) error {
 	}
 	networkv1alpha2.Eip{}.SetupWebhookWithManager(mgr)
 
-	err = bgp.SetupBgpConfReconciler(bgpServer, mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to setup bgpconf")
-	}
+	// err = bgp.SetupBgpConfReconciler(bgpServer, mgr)
+	// if err != nil {
+	// 	setupLog.Error(err, "unable to setup bgpconf")
+	// }
 
-	err = bgp.SetupBgpPeerReconciler(bgpServer, mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to setup bgppeer")
-	}
+	// err = bgp.SetupBgpPeerReconciler(bgpServer, mgr)
+	// if err != nil {
+	// 	setupLog.Error(err, "unable to setup bgppeer")
+	// }
 
 	if err = lb.SetupServiceReconciler(mgr); err != nil {
 		setupLog.Error(err, "unable to setup lb controller")
