@@ -2,7 +2,6 @@ package bgp
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -56,9 +55,7 @@ func TestServerd(t *testing.T) {
 
 var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
-	}
+	testEnv = &envtest.Environment{}
 
 	var err error
 	cfg, err = testEnv.Start()
