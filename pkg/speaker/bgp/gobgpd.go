@@ -55,7 +55,7 @@ func (b *Bgp) InitGoBgpConf() error {
 		return err
 	}
 	ctrl.Log.Info("amal: config not initialized", "config", initialConfig, "err", err)
-	x, err := config.InitialConfig(context.Background(), b.bgpServer, initialConfig, false)
+	x, err := config.InitialConfig(context.Background(), b.bgpServer, initialConfig, true)
 	ctrl.Log.Info("amal: config initialized", "config", x, "err", err)
 	return err
 }

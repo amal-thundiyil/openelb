@@ -56,17 +56,6 @@ var _ = Describe("BGP test", func() {
 			}, false)).Should(HaveOccurred())
 		})
 
-		It("Add BgpConf", func() {
-			err := b.HandleBgpGlobalConfig(&bgpapi.BgpConf{
-				Spec: bgpapi.BgpConfSpec{
-					As:         65003,
-					RouterId:   "10.0.255.254",
-					ListenPort: 17900,
-				},
-			}, "", false)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-
 		It("Update BgpPeer", func() {
 			peer := &bgpapi.BgpPeer{
 				Spec: bgpapi.BgpPeerSpec{
