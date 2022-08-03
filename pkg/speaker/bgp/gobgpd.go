@@ -50,10 +50,11 @@ func (b *Bgp) InitGoBgpConf() error {
 		return err
 	}
 	initialConfig, err := config.ReadConfigFile(path, "toml")
-	ctrl.Log.Info("amal: initial config", "path", path, "err", err)
+	ctrl.Log.Info("amal: initial config", "config", initialConfig, "err", err)
 	if err != nil {
 		return err
 	}
+	ctrl.Log.Info("amal: config not initialized", "config", initialConfig, "err", err)
 	x, err := config.InitialConfig(context.Background(), b.bgpServer, initialConfig, false)
 	ctrl.Log.Info("amal: config initialized", "config", x, "err", err)
 	return err
