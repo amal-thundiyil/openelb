@@ -22,6 +22,8 @@ func (options *BgpOptions) AddFlags(fs *pflag.FlagSet) {
 
 type Bgp struct {
 	bgpServer *server.BgpServer
+	conf      string
+	client    Client
 	rack      string
 	log       logr.Logger
 }

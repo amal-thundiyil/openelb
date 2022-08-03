@@ -1,18 +1,28 @@
 package bgp
 
 import (
+	"sync"
+
+	"github.com/openelb/openelb/pkg/constant"
 	"github.com/openelb/openelb/pkg/speaker"
+	"github.com/openelb/openelb/pkg/util"
 	api "github.com/osrg/gobgp/api"
+	"github.com/osrg/gobgp/pkg/config"
 	"github.com/osrg/gobgp/pkg/server"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sync"
 )
 
 var _ speaker.Speaker = &Bgp{}
 
-func NewGoBgpd(bgpOptions *BgpOptions) *Bgp {
+type Client struct {
+	Clientset kubernetes.Interface
+}
+
+func (c *Client) NewGoBgpd(bgpOptions *BgpOptions) *Bgp {
 	maxSize := 4 << 20 //4MB
 	grpcOpts := []grpc.ServerOption{grpc.MaxRecvMsgSize(maxSize), grpc.MaxSendMsgSize(maxSize)}
 
@@ -20,16 +30,40 @@ func NewGoBgpd(bgpOptions *BgpOptions) *Bgp {
 
 	return &Bgp{
 		bgpServer: bgpServer,
+		client:    *c,
 		log:       ctrl.Log.WithName("bgpserver"),
 	}
+}
+
+func (b *Bgp) InitGoBgpConf() error {
+	ctrl.Log.Info("here's the ns", "env", util.EnvNamespace())
+	cmClient := b.client.Clientset.CoreV1().ConfigMaps(util.EnvNamespace())
+	cm, err := cmClient.Get(context.TODO(), constant.OpenELBBgpConfigMap, metav1.GetOptions{})
+	ctrl.Log.Info("ran client", "cmclient", cm, "err", err)
+	if err != nil {
+		b.log.Error(err, "error finding ConfigMap", "cm", constant.OpenELBBgpConfigMap)
+		return err
+	}
+	path, err := WriteToTempFile(cm.Data["conf"])
+	if err != nil {
+		return err
+	}
+	initialConfig, err := config.ReadConfigFile(path, "toml")
+	if err != nil {
+		return err
+	}
+	_, err = config.InitialConfig(context.Background(), b.bgpServer, initialConfig, false)
+	return err
 }
 
 func (b *Bgp) run(stopCh <-chan struct{}) {
 	log := ctrl.Log.WithName("gobgpd")
 
 	log.Info("gobgpd starting")
-	go b.bgpServer.Serve()
+	log.Info("tu mera hero")
+	go b.InitGoBgpConf()
 	<-stopCh
+	log.Info("tu mera hero nhi")
 	log.Info("gobgpd ending")
 	err := b.bgpServer.StopBgp(context.Background(), &api.StopBgpRequest{})
 	if err != nil {
