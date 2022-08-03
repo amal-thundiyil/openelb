@@ -65,11 +65,15 @@ func (b *Bgp) run(stopCh <-chan struct{}) {
 
 	log.Info("gobgpd starting")
 	log.Info("tu mera hero")
-	go b.InitGoBgpConf()
+	go b.bgpServer.Serve()
+	err := b.InitGoBgpConf()
+	if err != nil {
+		log.Error(err, "failed to initialize gobgpd with conf")
+	}
 	<-stopCh
 	log.Info("tu mera hero nhi")
 	log.Info("gobgpd ending")
-	err := b.bgpServer.StopBgp(context.Background(), &api.StopBgpRequest{})
+	err = b.bgpServer.StopBgp(context.Background(), &api.StopBgpRequest{})
 	if err != nil {
 		log.Error(err, "failed to stop gobgpd")
 	}
