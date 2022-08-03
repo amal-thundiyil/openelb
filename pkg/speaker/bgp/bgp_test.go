@@ -44,39 +44,6 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("BGP test", func() {
-	Context("Create/Update/Delete BgpConf", func() {
-		It("Add BgpConf", func() {
-			err := b.HandleBgpGlobalConfig(&bgpapi.BgpConf{
-				Spec: bgpapi.BgpConfSpec{
-					As:         65003,
-					RouterId:   "10.0.255.254",
-					ListenPort: 17900,
-				},
-			}, "", false)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-
-		It("Update BgpConf", func() {
-			err := b.HandleBgpGlobalConfig(&bgpapi.BgpConf{
-				Spec: bgpapi.BgpConfSpec{
-					As:         65002,
-					RouterId:   "10.0.255.253",
-					ListenPort: 17902,
-				},
-			}, "", false)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-
-		It("Delete BgpConf", func() {
-			err := b.HandleBgpGlobalConfig(&bgpapi.BgpConf{
-				Spec: bgpapi.BgpConfSpec{
-					RouterId: "10.0.255.254",
-				},
-			}, "", true)
-			Expect(err).ShouldNot(HaveOccurred())
-		})
-	})
-
 	Context("Create/Update/Delete BgpPeer", func() {
 		It("Add BgpPeer", func() {
 			Expect(b.HandleBgpPeer(&bgpapi.BgpPeer{

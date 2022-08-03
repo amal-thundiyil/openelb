@@ -36,23 +36,26 @@ func (c *Client) NewGoBgpd(bgpOptions *BgpOptions) *Bgp {
 }
 
 func (b *Bgp) InitGoBgpConf() error {
-	ctrl.Log.Info("here's the ns", "env", util.EnvNamespace())
+	ctrl.Log.Info("amal: here's the ns", "env", util.EnvNamespace())
 	cmClient := b.client.Clientset.CoreV1().ConfigMaps(util.EnvNamespace())
 	cm, err := cmClient.Get(context.TODO(), constant.OpenELBBgpConfigMap, metav1.GetOptions{})
-	ctrl.Log.Info("ran client", "cmclient", cm, "err", err)
+	ctrl.Log.Info("amal: ran client", "cmclient", cm, "err", err)
 	if err != nil {
 		b.log.Error(err, "error finding ConfigMap", "cm", constant.OpenELBBgpConfigMap)
 		return err
 	}
 	path, err := WriteToTempFile(cm.Data["conf"])
+	ctrl.Log.Info("amal: path of tempfile", "path", path, "err", err)
 	if err != nil {
 		return err
 	}
 	initialConfig, err := config.ReadConfigFile(path, "toml")
+	ctrl.Log.Info("amal: initial config", "path", path, "err", err)
 	if err != nil {
 		return err
 	}
-	_, err = config.InitialConfig(context.Background(), b.bgpServer, initialConfig, false)
+	x, err := config.InitialConfig(context.Background(), b.bgpServer, initialConfig, false)
+	ctrl.Log.Info("amal: config initialized", "config", x, "err", err)
 	return err
 }
 
