@@ -96,11 +96,10 @@ func Run(c *options.OpenELBManagerOptions) error {
 
 	stopCh := ctrl.SetupSignalHandler()
 
-	// For layer2
 	k8sClient := clientset.NewForConfigOrDie(ctrl.GetConfigOrDie())
 	leader.LeaderElector(stopCh, k8sClient, *c.Leader)
 
-	// For gobgp
+	// For bgp
 	bgpClient := bgpd.Client{
 		Clientset: k8sClient,
 	}
@@ -123,16 +122,6 @@ func Run(c *options.OpenELBManagerOptions) error {
 		return err
 	}
 	networkv1alpha2.Eip{}.SetupWebhookWithManager(mgr)
-
-	// err = bgp.SetupBgpConfReconciler(bgpServer, mgr)
-	// if err != nil {
-	// 	setupLog.Error(err, "unable to setup bgpconf")
-	// }
-
-	// err = bgp.SetupBgpPeerReconciler(bgpServer, mgr)
-	// if err != nil {
-	// 	setupLog.Error(err, "unable to setup bgppeer")
-	// }
 
 	if err = lb.SetupServiceReconciler(mgr); err != nil {
 		setupLog.Error(err, "unable to setup lb controller")

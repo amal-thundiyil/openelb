@@ -47,6 +47,7 @@ const (
 	OpenELBNamespace          = "openelb-system"
 	OpenELBVipConfigMap       = "openelb-vip-configmap"
 	OpenELBBgpConfigMap       = "openelb-bgp-configmap"
+	OpenELBBgpName            = "openelb-bgp"
 	OpenELBVipName            = "openelb-keepalive-vip"
 	OpenELBServiceAccountName = "kube-keepalived-vip"
 	EnvOpenELBNamespace       = "OPENELB_NAMESPACE"
@@ -57,7 +58,9 @@ const (
 	NodeProxyConfigMapForwardImage = "forward-image"
 	NodeProxyConfigMapProxyImage   = "proxy-image"
 	OpenELBKeepAliveImage          = "keepalived-vip-image"
+	OpenELBBgpImage                = "bgp-image"
 	OpenELBDefaultKeepAliveImage   = "kubesphere/kube-keepalived-vip:0.35" // keepalived image by default
+	OpenELBDefaultBgpImage         = "index.docker.io/sandycash/cm-loader"
 	NodeProxyDefaultForwardImage   = "kubesphere/openelb-forward:master"
 	NodeProxyDefaultProxyImage     = "kubesphere/openelb-proxy:master"
 )
