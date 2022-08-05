@@ -46,7 +46,7 @@ const (
 	OpenELBSpeakerLocker      = "openelb-speaker"
 	OpenELBNamespace          = "openelb-system"
 	OpenELBVipConfigMap       = "openelb-vip-configmap"
-	OpenELBBgpConfigMap       = "openelb-bgp-configmap"
+	OpenELBBgpConfigMap       = "clusters-config"
 	OpenELBBgpName            = "openelb-bgp"
 	OpenELBVipName            = "openelb-keepalive-vip"
 	OpenELBServiceAccountName = "kube-keepalived-vip"
