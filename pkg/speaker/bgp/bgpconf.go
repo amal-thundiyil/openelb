@@ -97,8 +97,9 @@ func (b *Bgp) Start(stopCh <-chan struct{}) error {
 			b.log.Error(err, "failed to initalize with config", "cm", cm)
 			return err
 		}
+	} else {
+		b.log.Info("no '%s' config map found", constant.OpenELBBgpConfigMap)
 	}
-	b.log.Info("no '%s' config map found", constant.OpenELBBgpConfigMap)
 
 	go func() {
 		select {
