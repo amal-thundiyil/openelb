@@ -87,9 +87,18 @@ func (b *Bgp) Start(stopCh <-chan struct{}) error {
 	}
 	b.log.Info("starting server")
 	go b.bgpServer.Serve()
+
+	// get and initalize bgp server from configmap
 	dir := ds.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath
 	file := ds.Spec.Template.Spec.Volumes[0].ConfigMap.Name
-	err = b.InitGoBgpConf(filepath.Join(dir, file))
+	if cm, err := b.getConfig(constant.OpenELBBgpConfigMap); err == nil {
+		err = b.InitGoBgpConf(filepath.Join(dir, file))
+		if err != nil {
+			b.log.Error(err, "failed to initalize with config", "cm", cm)
+			return err
+		}
+	}
+	b.log.Info("no '%s' config map found", constant.OpenELBBgpConfigMap)
 
 	go func() {
 		select {
@@ -125,13 +134,13 @@ func (b *Bgp) InitGoBgpConf(path string) error {
 // User can config Bgp by ConfigMap to specify the images
 // If the ConfigMap exists and the configuration is set, use it,
 // otherwise, use the default image got from constants.
-func (b *Bgp) getConfig() (*corev1.ConfigMap, error) {
+func (b *Bgp) getConfig(cmName string) (*corev1.ConfigMap, error) {
 	return b.client.Clientset.CoreV1().ConfigMaps(util.EnvNamespace()).
-		Get(context.Background(), constant.OpenELBImagesConfigMap, metav1.GetOptions{})
+		Get(context.Background(), cmName, metav1.GetOptions{})
 }
 
 func (b *Bgp) getImage() string {
-	cm, err := b.getConfig()
+	cm, err := b.getConfig(constant.OpenELBImagesConfigMap)
 	if err != nil {
 		b.log.Info("using default image %s", constant.OpenELBDefaultBgpImage)
 		return constant.OpenELBDefaultBgpImage
