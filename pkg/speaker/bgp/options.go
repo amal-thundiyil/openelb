@@ -7,7 +7,6 @@ import (
 )
 
 type Bgp struct {
-	rack      string
 	log       logr.Logger
 	conf      string
 	client    Client
