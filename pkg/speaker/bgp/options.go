@@ -4,13 +4,12 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/osrg/gobgp/pkg/server"
 	"github.com/spf13/pflag"
-	corev1 "k8s.io/api/core/v1"
 )
 
 type Bgp struct {
 	rack      string
 	log       logr.Logger
-	cm        *corev1.ConfigMap
+	conf      string
 	client    Client
 	bgpServer *server.BgpServer
 }
