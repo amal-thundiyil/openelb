@@ -48,14 +48,12 @@ func (b *Bgp) updateConfigMap(eventChannel <-chan watch.Event, mutex *sync.Mutex
 					err := b.updateConfig(updatedMap)
 					if err != nil {
 						b.log.Error(err, "error updating gobgp config")
-						return
 					}
 				}
 			case watch.Deleted:
 				err := b.bgpServer.StopBgp(context.Background(), nil)
 				if err != nil {
 					b.log.Error(err, "error stopping bgp server")
-					return
 				}
 			}
 		} else {
