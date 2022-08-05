@@ -8,9 +8,9 @@ import (
 )
 
 type Bgp struct {
+	rack      string
 	log       logr.Logger
 	cm        *corev1.ConfigMap
-	conf      *BgpConfig
 	client    Client
 	bgpServer *server.BgpServer
 }
