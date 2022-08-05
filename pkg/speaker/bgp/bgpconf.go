@@ -89,10 +89,9 @@ func (b *Bgp) Start(stopCh <-chan struct{}) error {
 	go b.bgpServer.Serve()
 
 	// get and initalize bgp server from configmap
-	dir := ds.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath
-	file := ds.Spec.Template.Spec.Volumes[0].ConfigMap.Name
+	path := ds.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath
 	if cm, err := b.getConfig(constant.OpenELBBgpConfigMap); err == nil {
-		err = b.InitGoBgpConf(filepath.Join(dir, file))
+		err = b.InitGoBgpConf(path)
 		if err != nil {
 			b.log.Error(err, "failed to initalize with config", "cm", cm)
 			return err
@@ -121,6 +120,7 @@ func (b *Bgp) Start(stopCh <-chan struct{}) error {
 }
 
 func (b *Bgp) InitGoBgpConf(path string) error {
+	ctrl.Log.Info("amal: path to file", "path", path)
 	initialConfig, err := config.ReadConfigFile(path, "toml")
 	ctrl.Log.Info("amal: initial config", "config", initialConfig, "err", err)
 	if err != nil {
