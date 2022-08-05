@@ -98,7 +98,7 @@ func (b *Bgp) Start(stopCh <-chan struct{}) error {
 			return err
 		}
 	} else {
-		b.log.Info("no '%s' config map found", constant.OpenELBBgpConfigMap)
+		b.log.Info("Bgp config map %s not found", constant.OpenELBBgpConfigMap)
 	}
 
 	go func() {
@@ -181,7 +181,7 @@ func (b *Bgp) generateBgpDaemonSet() *appv1.DaemonSet {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "clusters-config-file",
+										Name: "clusters-config",
 									},
 								},
 							},
