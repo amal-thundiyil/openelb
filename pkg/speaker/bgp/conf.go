@@ -32,6 +32,7 @@ func (b *Bgp) watchForChanges(mutex *sync.Mutex) {
 func (b *Bgp) updateConfigMap(eventChannel <-chan watch.Event, mutex *sync.Mutex) {
 	for {
 		event, open := <-eventChannel
+		ctrl.Log.Info("get me all the events", "event", event, "type", event.Type)
 		if open {
 			switch event.Type {
 			case watch.Added:
