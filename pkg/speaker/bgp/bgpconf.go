@@ -124,6 +124,8 @@ func (b *Bgp) InitGoBgpConf(path string) error {
 	initialConfig, err := config.ReadConfigFile(path, "toml")
 	ctrl.Log.Info("amal: initial config", "config", initialConfig, "err", err)
 	if err != nil {
+		initialConfig, err := config.ReadConfigFile("clusters-config-file", "toml")
+		ctrl.Log.Info("amal: trying again initial config", "config", initialConfig, "err", err)
 		return err
 	}
 	ctrl.Log.Info("amal: config not initialized", "config", initialConfig, "err", err)
@@ -197,7 +199,8 @@ func (b *Bgp) generateBgpDaemonSet() *appv1.DaemonSet {
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									MountPath: "/clusters-config",
+									MountPath: "/clusters-config/clusters-config-file",
+									SubPath:   "clusters-config-file",
 									Name:      "clusters-config-volume",
 								},
 							},
