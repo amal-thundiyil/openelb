@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (b *Bgp) watchForChanges(mutex *sync.Mutex) {
@@ -67,19 +68,24 @@ func (b *Bgp) initialConfig(cm *corev1.ConfigMap) error {
 	if !ok {
 		return fmt.Errorf("no gobgp config found")
 	}
+	ctrl.Log.Info("amal: initial config", "data", data)
 	path, err := writeToTempFile(data)
+	ctrl.Log.Info("amal: initial config temp file writter", "path", path, "err", err)
 	defer os.RemoveAll(path)
 	if err != nil {
 		return err
 	}
 	initialConfig, err := config.ReadConfigFile(path, "toml")
+	ctrl.Log.Info("amal: initial config read", "initconfig", initialConfig)
 	if err != nil {
 		return err
 	}
 	_, err = config.InitialConfig(context.Background(), b.bgpServer, initialConfig, false)
+	ctrl.Log.Info("amal: initial config written", "err", err)
 	if err == nil {
 		b.conf = data
 	}
+	ctrl.Log.Info("amal: initial config written", "bgp", b)
 	return err
 }
 
