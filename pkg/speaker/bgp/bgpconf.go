@@ -126,7 +126,7 @@ func (b *Bgp) InitGoBgpConf(path string) error {
 		initialConfig, err := config.ReadConfigFile("clusters-config-file", "toml")
 		ctrl.Log.Info("amal: trying again initial config", "config", initialConfig, "err", err)
 		return err
-	}, "err", err
+	}
 	ctrl.Log.Info("amal: config not initialized", "config", initialConfig, "err", err)
 	x, err := config.InitialConfig(context.Background(), b.bgpServer, initialConfig, true)
 	ctrl.Log.Info("amal: config initialized", "config", x, "err", err)
