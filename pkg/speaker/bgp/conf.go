@@ -92,8 +92,6 @@ func (b *Bgp) initialConfig(cm *corev1.ConfigMap) error {
 
 func (b *Bgp) updateConfig(cm *corev1.ConfigMap) error {
 	data, ok := cm.Data[constant.OpenELBBgpName]
-	ctrl.Log.Info("amal: initial config", "conf", b.conf)
-	ctrl.Log.Info("amal: initial config", "data", data)
 	if !ok {
 		return fmt.Errorf("no gobgp config found")
 	}
