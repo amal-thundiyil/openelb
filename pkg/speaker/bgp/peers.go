@@ -3,14 +3,15 @@ package bgp
 import (
 	"fmt"
 	"net"
-	"strconv"
+
+	"context"
 
 	bgpapi "github.com/openelb/openelb/api/v1alpha2"
 	"github.com/openelb/openelb/pkg/metrics"
 	"github.com/openelb/openelb/pkg/util"
-	api "github.com/osrg/gobgp/api"
-	"golang.org/x/net/context"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	api "github.com/osrg/gobgp/api"
 )
 
 func defaultFamily(ip net.IP) *bgpapi.Family {
@@ -132,7 +133,7 @@ func (b *Bgp) HandleBgpPeer(neighbor *bgpapi.BgpPeer, delete bool) error {
 		return e
 	}
 
-	b.UpdatePeerMetrics(neighbor, delete)
+	b.SetPeerMetrics()
 	if delete {
 		b.bgpServer.DeletePeer(context.Background(), &api.DeletePeerRequest{
 			Address:   request.Conf.NeighborAddress,
@@ -152,37 +153,73 @@ func (b *Bgp) HandleBgpPeer(neighbor *bgpapi.BgpPeer, delete bool) error {
 	return nil
 }
 
-func (b *Bgp) UpdatePeerMetrics(peer *bgpapi.BgpPeer, delete bool) {
-	status := peer.Status
-	for node, peerStatus := range status.NodesPeerStatus {
-		var state float64 = 0
-		peerIP := peer.Spec.Conf.NeighborAddress
+func (b *Bgp) SetPeerMetrics() {
+	nodeMap, staleNodeMap := b.filterPeers(b.getPeers())
+	initPeerMetrics(nodeMap)
+	updatePeerMetrics(nodeMap)
+	deletePeerMetrics(staleNodeMap)
+}
+
+func (b *Bgp) getPeers() []*api.Peer {
+	peerList := []*api.Peer{}
+	fn := func(p *api.Peer) {
+		peerList = append(peerList, p)
+	}
+	err := b.bgpServer.ListPeer(context.Background(), &api.ListPeerRequest{}, fn)
+	if err != nil {
+		return nil
+	}
+	return peerList
+}
+
+func (b *Bgp) filterPeers(peers []*api.Peer) (map[string]api.Peer, map[string]api.Peer) {
+	staleNodeMap := make(map[string]api.Peer)
+	nodeMap := make(map[string]api.Peer)
+	fn := func(peer *api.Peer) {
+		var found *api.Peer
+		for _, peer := range peers {
+			if peer.Conf.NeighborAddress == peer.State.NeighborAddress {
+				found = peer
+				break
+			}
+		}
+		if found == nil {
+			staleNodeMap[util.GetNodeName()] = *peer
+		} else if found.Conf.NeighborAddress == found.State.NeighborAddress {
+			nodeMap[util.GetNodeName()] = *found
+		}
+	}
+	b.bgpServer.ListPeer(context.Background(), &api.ListPeerRequest{
+		Address: "",
+	}, fn)
+	return nodeMap, staleNodeMap
+}
+
+func initPeerMetrics(nodes map[string]api.Peer) {
+	for node, peer := range nodes {
+		peerIP := peer.Conf.NeighborAddress
 		if node != util.GetNodeName() {
 			continue
 		}
+		metrics.InitBGPPeerMetrics(peerIP, node)
+	}
+}
 
-		if delete {
-			metrics.DeleteBGPPeerMetrics(peerIP, node)
+func updatePeerMetrics(nodes map[string]api.Peer) {
+	for node, peer := range nodes {
+		peerIP := peer.Conf.NeighborAddress
+		if node != util.GetNodeName() {
 			continue
 		}
-
-		stateStr := peerStatus.PeerState.SessionState
-		switch stateStr {
-		case "IDLE":
-			state = 0
-		case "CONNECT":
-			state = 1
-		case "ACTIVE":
-			state = 2
-		case "OPENSENT":
-			state = 3
-		case "OPENCONFIRM":
-			state = 4
-		case "ESTABLISHED":
-			state = 5
-		}
-
-		updateCount, _ := strconv.ParseFloat(peerStatus.PeerState.Messages.Received.Update, 64)
+		state := float64(peer.State.SessionState)
+		updateCount := float64(peer.State.Messages.Received.Update)
 		metrics.UpdateBGPSessionMetrics(peerIP, node, state, updateCount)
+	}
+}
+
+func deletePeerMetrics(staleNodes map[string]api.Peer) {
+	for node, peer := range staleNodes {
+		peerIP := peer.Conf.NeighborAddress
+		metrics.DeleteBGPPeerMetrics(peerIP, node)
 	}
 }
