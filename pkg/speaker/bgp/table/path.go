@@ -3,6 +3,7 @@ package table
 import (
 	"net"
 
+	"github.com/openelb/openelb/pkg/speaker/bgp/config"
 	"github.com/osrg/gobgp/pkg/packet/bgp"
 )
 
@@ -44,6 +45,24 @@ type PeerInfo struct {
 	Confederation           bool
 }
 
+type Validation struct {
+	Status          config.RpkiValidationResultType
+	Reason          RpkiValidationReasonType
+	Matched         []*ROA
+	UnmatchedAs     []*ROA
+	UnmatchedLength []*ROA
+}
+
+type ROA struct {
+	Family  int
+	Network *net.IPNet
+	MaxLen  uint8
+	AS      uint32
+	Src     string
+}
+
+type RpkiValidationReasonType string
+
 // create new PathAttributes
 func (path *Path) Clone(isWithdraw bool) *Path {
 	return &Path{
@@ -54,20 +73,48 @@ func (path *Path) Clone(isWithdraw bool) *Path {
 	}
 }
 
-func (path *Path) SetNexthop(nexthop net.IP) {
-	if path.GetRouteFamily() == bgp.RF_IPv4_UC && nexthop.To4() == nil {
-		path.delPathAttr(bgp.BGP_ATTR_TYPE_NEXT_HOP)
-		mpreach := bgp.NewPathAttributeMpReachNLRI(nexthop.String(), []bgp.AddrPrefixInterface{path.GetNlri()})
-		path.setPathAttr(mpreach)
-		return
+func (path *Path) GetRouteFamily() bgp.RouteFamily {
+	return bgp.AfiSafiToRouteFamily(path.OriginInfo().nlri.AFI(), path.OriginInfo().nlri.SAFI())
+}
+
+func (path *Path) OriginInfo() *originInfo {
+	return path.root().info
+}
+
+func (path *Path) root() *Path {
+	p := path
+	for p.parent != nil {
+		p = p.parent
 	}
-	attr := path.getPathAttr(bgp.BGP_ATTR_TYPE_NEXT_HOP)
-	if attr != nil {
-		path.setPathAttr(bgp.NewPathAttributeNextHop(nexthop.String()))
+	return p
+}
+
+func nlriToIPNet(nlri bgp.AddrPrefixInterface) *net.IPNet {
+	switch T := nlri.(type) {
+	case *bgp.IPAddrPrefix:
+		return &net.IPNet{
+			IP:   net.IP(T.Prefix.To4()),
+			Mask: net.CIDRMask(int(T.Length), 32),
+		}
+	case *bgp.IPv6AddrPrefix:
+		return &net.IPNet{
+			IP:   net.IP(T.Prefix.To16()),
+			Mask: net.CIDRMask(int(T.Length), 128),
+		}
+	case *bgp.LabeledIPAddrPrefix:
+		return &net.IPNet{
+			IP:   net.IP(T.Prefix.To4()),
+			Mask: net.CIDRMask(int(T.Length), 32),
+		}
+	case *bgp.LabeledIPv6AddrPrefix:
+		return &net.IPNet{
+			IP:   net.IP(T.Prefix.To4()),
+			Mask: net.CIDRMask(int(T.Length), 128),
+		}
 	}
-	attr = path.getPathAttr(bgp.BGP_ATTR_TYPE_MP_REACH_NLRI)
-	if attr != nil {
-		oldNlri := attr.(*bgp.PathAttributeMpReachNLRI)
-		path.setPathAttr(bgp.NewPathAttributeMpReachNLRI(nexthop.String(), oldNlri.Value))
-	}
+	return nil
+}
+
+func (path *Path) GetNlri() bgp.AddrPrefixInterface {
+	return path.OriginInfo().nlri
 }
