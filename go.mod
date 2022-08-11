@@ -9,6 +9,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/j-keck/arping v1.0.1
+	github.com/k-sone/critbitgo v1.3.1-0.20191024122315-48c9e1530131
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mdlayher/arp v0.0.0-20191213142603-f72070a231fc
 	github.com/mdlayher/ethernet v0.0.0-20190606142754-0394541c37b7
@@ -20,6 +21,7 @@ require (
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/projectcalico/libcalico-go v1.7.2-0.20191104213956-8f81e1e344ce
 	github.com/prometheus/client_golang v1.12.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5
