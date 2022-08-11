@@ -120,32 +120,17 @@ type BgpConditions struct {
 }
 
 type MatchCommunitySet struct {
-	// original -> bgp-pol:community-set
-	// References a defined community set.
-	CommunitySet string `mapstructure:"community-set" json:"community-set,omitempty"`
-	// original -> rpol:match-set-options
-	// Optional parameter that governs the behaviour of the
-	// match operation.
+	CommunitySet    string              `mapstructure:"community-set" json:"community-set,omitempty"`
 	MatchSetOptions MatchSetOptionsType `mapstructure:"match-set-options" json:"match-set-options,omitempty"`
 }
 
 type MatchExtCommunitySet struct {
-	// original -> bgp-pol:ext-community-set
-	// References a defined extended community set.
-	ExtCommunitySet string `mapstructure:"ext-community-set" json:"ext-community-set,omitempty"`
-	// original -> rpol:match-set-options
-	// Optional parameter that governs the behaviour of the
-	// match operation.
+	ExtCommunitySet string              `mapstructure:"ext-community-set" json:"ext-community-set,omitempty"`
 	MatchSetOptions MatchSetOptionsType `mapstructure:"match-set-options" json:"match-set-options,omitempty"`
 }
 
 type MatchAsPathSet struct {
-	// original -> bgp-pol:as-path-set
-	// References a defined AS path set.
-	AsPathSet string `mapstructure:"as-path-set" json:"as-path-set,omitempty"`
-	// original -> rpol:match-set-options
-	// Optional parameter that governs the behaviour of the
-	// match operation.
+	AsPathSet       string              `mapstructure:"as-path-set" json:"as-path-set,omitempty"`
 	MatchSetOptions MatchSetOptionsType `mapstructure:"match-set-options" json:"match-set-options,omitempty"`
 }
 
@@ -158,12 +143,8 @@ type CommunityCount struct {
 }
 
 type AsPathLength struct {
-	// original -> ptypes:operator
-	// type of comparison to be performed.
 	Operator AttributeComparison `mapstructure:"operator" json:"operator,omitempty"`
-	// original -> ptypes:value
-	// value to compare with the community count.
-	Value uint32 `mapstructure:"value" json:"value,omitempty"`
+	Value    uint32              `mapstructure:"value" json:"value,omitempty"`
 }
 
 type RouteType string
@@ -180,6 +161,38 @@ type AttributeComparison string
 
 type Actions struct {
 	RouteDisposition RouteDisposition `mapstructure:"route-disposition" json:"route-disposition,omitempty"`
-	IgpActions IgpActions `mapstructure:"igp-actions" json:"igp-actions,omitempty"`
-	BgpActions BgpActions `mapstructure:"bgp-actions" json:"bgp-actions,omitempty"`
+	IgpActions       IgpActions       `mapstructure:"igp-actions" json:"igp-actions,omitempty"`
+	BgpActions       BgpActions       `mapstructure:"bgp-actions" json:"bgp-actions,omitempty"`
+}
+
+type RouteDisposition string
+
+type IgpActions struct {
+	SetTag TagType `mapstructure:"set-tag" json:"set-tag,omitempty"`
+}
+
+type BgpActions struct {
+	SetAsPathPrepend  SetAsPathPrepend  `mapstructure:"set-as-path-prepend" json:"set-as-path-prepend,omitempty"`
+	SetCommunity      SetCommunity      `mapstructure:"set-community" json:"set-community,omitempty"`
+	SetExtCommunity   SetExtCommunity   `mapstructure:"set-ext-community" json:"set-ext-community,omitempty"`
+	SetRouteOrigin    BgpOriginAttrType `mapstructure:"set-route-origin" json:"set-route-origin,omitempty"`
+	SetLocalPref      uint32            `mapstructure:"set-local-pref" json:"set-local-pref,omitempty"`
+	SetNextHop        BgpNextHopType    `mapstructure:"set-next-hop" json:"set-next-hop,omitempty"`
+	SetMed            BgpSetMedType     `mapstructure:"set-med" json:"set-med,omitempty"`
+	SetLargeCommunity SetLargeCommunity `mapstructure:"set-large-community" json:"set-large-community,omitempty"`
+}
+
+type SetAsPathPrepend struct {
+	RepeatN uint8  `mapstructure:"repeat-n" json:"repeat-n,omitempty"`
+	As      string `mapstructure:"as" json:"as,omitempty"`
+}
+
+type SetCommunity struct {
+	SetCommunityMethod SetCommunityMethod `mapstructure:"set-community-method" json:"set-community-method,omitempty"`
+	Options            string             `mapstructure:"options" json:"options,omitempty"`
+}
+
+type SetExtCommunity struct {
+	SetExtCommunityMethod SetExtCommunityMethod `mapstructure:"set-ext-community-method" json:"set-ext-community-method,omitempty"`
+	Options               string                `mapstructure:"options" json:"options,omitempty"`
 }
