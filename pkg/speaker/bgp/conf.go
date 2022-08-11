@@ -34,7 +34,7 @@ func (b *Bgp) HandleBgpGlobalConfig(global *bgpapi.BgpConf, rack string, delete 
 		return err
 	}
 
-	if cm == nil {
+	if cm != nil {
 		if policyConf, ok := cm.Data["conf"]; !ok {
 			path, err := writeToTempFile(policyConf)
 			defer os.RemoveAll(path)
