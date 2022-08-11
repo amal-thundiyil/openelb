@@ -172,14 +172,11 @@ type IgpActions struct {
 }
 
 type BgpActions struct {
-	SetAsPathPrepend  SetAsPathPrepend  `mapstructure:"set-as-path-prepend" json:"set-as-path-prepend,omitempty"`
-	SetCommunity      SetCommunity      `mapstructure:"set-community" json:"set-community,omitempty"`
-	SetExtCommunity   SetExtCommunity   `mapstructure:"set-ext-community" json:"set-ext-community,omitempty"`
-	SetRouteOrigin    BgpOriginAttrType `mapstructure:"set-route-origin" json:"set-route-origin,omitempty"`
-	SetLocalPref      uint32            `mapstructure:"set-local-pref" json:"set-local-pref,omitempty"`
-	SetNextHop        BgpNextHopType    `mapstructure:"set-next-hop" json:"set-next-hop,omitempty"`
-	SetMed            BgpSetMedType     `mapstructure:"set-med" json:"set-med,omitempty"`
-	SetLargeCommunity SetLargeCommunity `mapstructure:"set-large-community" json:"set-large-community,omitempty"`
+	SetAsPathPrepend SetAsPathPrepend  `mapstructure:"set-as-path-prepend" json:"set-as-path-prepend,omitempty"`
+	SetCommunity     SetCommunity      `mapstructure:"set-community" json:"set-community,omitempty"`
+	SetExtCommunity  SetExtCommunity   `mapstructure:"set-ext-community" json:"set-ext-community,omitempty"`
+	SetRouteOrigin   BgpOriginAttrType `mapstructure:"set-route-origin" json:"set-route-origin,omitempty"`
+	SetLocalPref     uint32            `mapstructure:"set-local-pref" json:"set-local-pref,omitempty"`
 }
 
 type SetAsPathPrepend struct {
@@ -195,4 +192,14 @@ type SetCommunity struct {
 type SetExtCommunity struct {
 	SetExtCommunityMethod SetExtCommunityMethod `mapstructure:"set-ext-community-method" json:"set-ext-community-method,omitempty"`
 	Options               string                `mapstructure:"options" json:"options,omitempty"`
+}
+
+type SetCommunityMethod struct {
+	CommunitiesList []string `mapstructure:"communities-list" json:"communities-list,omitempty"`
+	CommunitySetRef string   `mapstructure:"community-set-ref" json:"community-set-ref,omitempty"`
+}
+
+type SetExtCommunityMethod struct {
+	CommunitiesList    []string `mapstructure:"communities-list" json:"communities-list,omitempty"`
+	ExtCommunitySetRef string   `mapstructure:"ext-community-set-ref" json:"ext-community-set-ref,omitempty"`
 }
