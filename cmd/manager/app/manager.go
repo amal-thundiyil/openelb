@@ -95,7 +95,18 @@ func Run(c *options.OpenELBManagerOptions) error {
 		return err
 	}
 
-	bgpServer := bgpd.NewGoBgpd(c.Bgp)
+	stopCh := ctrl.SetupSignalHandler()
+
+	//For layer2
+	k8sClient := clientset.NewForConfigOrDie(ctrl.GetConfigOrDie())
+	leader.LeaderElector(stopCh, k8sClient, *c.Leader)
+
+	// For bgp
+	bgpClient := bgpd.Client{
+		Clientset: k8sClient,
+	}
+
+	bgpServer := bgpClient.NewGoBgpd(c.Bgp)
 
 	// Setup all Controllers
 	err = ipam.SetupIPAM(mgr)
@@ -119,12 +130,6 @@ func Run(c *options.OpenELBManagerOptions) error {
 		setupLog.Error(err, "unable to setup lb controller")
 		return err
 	}
-
-	stopCh := ctrl.SetupSignalHandler()
-
-	//For layer2
-	k8sClient := clientset.NewForConfigOrDie(ctrl.GetConfigOrDie())
-	leader.LeaderElector(stopCh, k8sClient, *c.Leader)
 
 	//For gobgp
 	err = speaker.RegisterSpeaker(constant.OpenELBProtocolBGP, bgpServer)
