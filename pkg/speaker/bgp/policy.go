@@ -18,7 +18,7 @@ import (
 func (b *Bgp) UpdatePolicy(cm *corev1.ConfigMap) error {
 	policyConf, ok := cm.Data[constant.OpenELBBgpName]
 	if !ok {
-		b.log.Info("error in %s configmap, %s missing", constant.OpenELBBgpConfigMap, constant.OpenELBBgpName)
+		b.log.Info("error in %s configmap, %s missing", constant.OpenELBBgpName)
 		return nil
 	}
 	path, err := writeToTempFile(policyConf)
