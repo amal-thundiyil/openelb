@@ -1869,40 +1869,6 @@ func NewAsPathLengthCondition(c config.AsPathLength) (*AsPathLengthCondition, er
 	}, nil
 }
 
-type RpkiValidationCondition struct {
-	result config.RpkiValidationResultType
-}
-
-func (c *RpkiValidationCondition) Type() ConditionType {
-	return CONDITION_RPKI
-}
-
-func (c *RpkiValidationCondition) Evaluate(path *Path, options *PolicyOptions) bool {
-	if options != nil && options.Validate != nil {
-		return c.result == options.Validate(path).Status
-	}
-	return false
-}
-
-func (c *RpkiValidationCondition) Set() DefinedSet {
-	return nil
-}
-
-func (c *RpkiValidationCondition) Name() string { return "" }
-
-func (c *RpkiValidationCondition) String() string {
-	return string(c.result)
-}
-
-func NewRpkiValidationCondition(c config.RpkiValidationResultType) (*RpkiValidationCondition, error) {
-	if c == config.RpkiValidationResultType("") || c == config.RPKI_VALIDATION_RESULT_TYPE_NONE {
-		return nil, nil
-	}
-	return &RpkiValidationCondition{
-		result: c,
-	}, nil
-}
-
 type RouteTypeCondition struct {
 	typ config.RouteType
 }
@@ -2682,8 +2648,6 @@ func (s *Statement) ToConfig() *config.Statement {
 					cond.BgpConditions.MatchLargeCommunitySet = config.MatchLargeCommunitySet{LargeCommunitySet: v.set.Name(), MatchSetOptions: config.IntToMatchSetOptionsTypeMap[int(v.option)]}
 				case *NextHopCondition:
 					cond.BgpConditions.NextHopInList = v.set.List()
-				case *RpkiValidationCondition:
-					cond.BgpConditions.RpkiValidationResult = v.result
 				case *RouteTypeCondition:
 					cond.BgpConditions.RouteType = v.typ
 				case *AfiSafiInCondition:
@@ -2871,9 +2835,6 @@ func NewStatement(c config.Statement) (*Statement, error) {
 		},
 		func() (Condition, error) {
 			return NewAsPathLengthCondition(c.Conditions.BgpConditions.AsPathLength)
-		},
-		func() (Condition, error) {
-			return NewRpkiValidationCondition(c.Conditions.BgpConditions.RpkiValidationResult)
 		},
 		func() (Condition, error) {
 			return NewRouteTypeCondition(c.Conditions.BgpConditions.RouteType)
