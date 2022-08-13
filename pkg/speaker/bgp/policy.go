@@ -34,17 +34,20 @@ func (b *Bgp) UpdatePolicy(cm *corev1.ConfigMap) error {
 	rp, err := table.NewAPIRoutingPolicyFromConfigStruct(p)
 	if err != nil {
 		b.log.Error(err, "failed to update policy config")
-	} else {
-		b.bgpServer.SetPolicies(context.Background(), &api.SetPoliciesRequest{
-			DefinedSets: rp.DefinedSets,
-			Policies:    rp.Policies,
-		})
+		return err
 	}
-	AssignGlobalpolicy(context.Background(), b.bgpServer, &newConfig.Global.ApplyPolicy.Config)
-	return nil
+	err = b.bgpServer.SetPolicies(context.Background(), &api.SetPoliciesRequest{
+		DefinedSets: rp.DefinedSets,
+		Policies:    rp.Policies,
+	})
+	if err != nil {
+		b.log.Info("successfully updated policy config")
+		return err
+	}
+	return b.AssignGlobalpolicy(context.Background(), b.bgpServer, &newConfig.Global.ApplyPolicy.Config)
 }
 
-func AssignGlobalpolicy(ctx context.Context, bgpServer *server.BgpServer, a *config.ApplyPolicyConfig) {
+func (b *Bgp) AssignGlobalpolicy(ctx context.Context, bgpServer *server.BgpServer, a *config.ApplyPolicyConfig) error {
 	toDefaultTable := func(r config.DefaultPolicyType) table.RouteType {
 		var def table.RouteType
 		switch r {
@@ -67,7 +70,7 @@ func AssignGlobalpolicy(ctx context.Context, bgpServer *server.BgpServer, a *con
 
 	def := toDefaultTable(a.DefaultImportPolicy)
 	ps := toPolicies(a.ImportPolicyList)
-	bgpServer.SetPolicyAssignment(ctx, &api.SetPolicyAssignmentRequest{
+	err := bgpServer.SetPolicyAssignment(ctx, &api.SetPolicyAssignmentRequest{
 		Assignment: table.NewAPIPolicyAssignmentFromTableStruct(&table.PolicyAssignment{
 			Name:     table.GLOBAL_RIB_NAME,
 			Type:     table.POLICY_DIRECTION_IMPORT,
@@ -75,10 +78,14 @@ func AssignGlobalpolicy(ctx context.Context, bgpServer *server.BgpServer, a *con
 			Default:  def,
 		}),
 	})
+	if err != nil {
+		b.log.Info("failed setting policy assignment")
+		return err
+	}
 
 	def = toDefaultTable(a.DefaultExportPolicy)
 	ps = toPolicies(a.ExportPolicyList)
-	bgpServer.SetPolicyAssignment(ctx, &api.SetPolicyAssignmentRequest{
+	err = bgpServer.SetPolicyAssignment(ctx, &api.SetPolicyAssignmentRequest{
 		Assignment: table.NewAPIPolicyAssignmentFromTableStruct(&table.PolicyAssignment{
 			Name:     table.GLOBAL_RIB_NAME,
 			Type:     table.POLICY_DIRECTION_EXPORT,
@@ -86,6 +93,11 @@ func AssignGlobalpolicy(ctx context.Context, bgpServer *server.BgpServer, a *con
 			Default:  def,
 		}),
 	})
+	if err != nil {
+		b.log.Info("failed setting policy assignment")
+		return err
+	}
+	return nil
 }
 
 func writeToTempFile(val string) (string, error) {
