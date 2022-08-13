@@ -5,6 +5,7 @@ import (
 	api "github.com/osrg/gobgp/api"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (b *Bgp) HandleBgpGlobalConfig(global *bgpapi.BgpConf, rack string, delete bool, cm *corev1.ConfigMap) error {
@@ -28,6 +29,7 @@ func (b *Bgp) HandleBgpGlobalConfig(global *bgpapi.BgpConf, rack string, delete 
 	}
 
 	if cm != nil {
+		ctrl.Log.Info("configmap found, going to update now")
 		b.UpdatePolicy(cm)
 	}
 	return nil

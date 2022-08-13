@@ -75,10 +75,13 @@ func (r *BgpConfReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	clone := instance.DeepCopy()
 
+	ctrl.Log.Info("amal: starting policy reconcile")
 	cm, err := r.ReconcilePolicyCM(ctx, clone)
 	if err != nil {
+		ctrl.Log.Info("amal: error in policy reconcile")
 		return ctrl.Result{}, err
 	}
+	ctrl.Log.Info("amal: completed policy")
 
 	if util.IsDeletionCandidate(clone, constant.FinalizerName) {
 		err := r.BgpServer.HandleBgpGlobalConfig(clone, "", true, cm)
@@ -145,6 +148,7 @@ func (r *BgpConfReconciler) ReconcilePolicyCM(ctx context.Context, bgpConf *v1al
 		}
 		return nil, err
 	}
+	ctrl.Log.Info("amal: config map found", "found cm", foundPolicy)
 	return foundPolicy, nil
 }
 
