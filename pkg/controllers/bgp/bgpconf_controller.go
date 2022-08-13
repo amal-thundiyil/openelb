@@ -42,6 +42,7 @@ import (
 
 var (
 	syncStatusPeriod = 30
+	policyField      = ".spec.policy"
 )
 
 // BgpConfReconciler reconciles a BgpConf object
@@ -140,8 +141,12 @@ func (r *BgpConfReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 // ReconcilePolicyCM is part of the reconciliation loop of BgpConf which aims to move
 // the current state of the BgpConf Spec closer to the desired state by adding the Policy name.
 func (r *BgpConfReconciler) ReconcilePolicyCM(ctx context.Context, bgpConf *v1alpha2.BgpConf) (*corev1.ConfigMap, error) {
+	if bgpConf.Spec.Policy == "" {
+		return nil, nil
+	}
+	policyName := bgpConf.Spec.Policy
 	foundPolicy := &corev1.ConfigMap{}
-	err := r.Get(ctx, types.NamespacedName{Name: constant.OpenELBBgpConfigMap, Namespace: util.EnvNamespace()}, foundPolicy)
+	err := r.Get(ctx, types.NamespacedName{Name: policyName, Namespace: util.EnvNamespace()}, foundPolicy)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
@@ -219,6 +224,19 @@ func (r *BgpConfReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 			return false
 		},
+	}
+
+	// The policy field must be indexed by the manager, so that we will be able to lookup BgpConf by a referenced ConfigMap name.
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha2.BgpConf{}, policyField, func(rawObj runtime.Object) []string {
+		// Extract the ConfigMap name from the BgpConf Spec, if one is provided
+		bgpConf := rawObj.(*v1alpha2.BgpConf)
+		if bgpConf.Spec.Policy == "" {
+			return nil
+		}
+		return []string{bgpConf.Spec.Policy}
+	})
+	if err != nil {
+		return err
 	}
 
 	ctl, err := ctrl.NewControllerManagedBy(mgr).
