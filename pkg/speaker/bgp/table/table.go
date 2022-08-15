@@ -16,7 +16,6 @@
 package table
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
@@ -427,10 +426,6 @@ func (s *PrefixSet) String() string {
 	return strings.Join(s.List(), "\n")
 }
 
-func (s *PrefixSet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ToConfig())
-}
-
 type NextHopSet struct {
 	list []net.IPNet
 }
@@ -497,10 +492,6 @@ func (s *NextHopSet) ToConfig() []string {
 
 func (s *NextHopSet) String() string {
 	return "[ " + strings.Join(s.List(), ", ") + " ]"
-}
-
-func (s *NextHopSet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ToConfig())
 }
 
 type NeighborSet struct {
@@ -573,10 +564,6 @@ func (s *NeighborSet) ToConfig() *config.NeighborSet {
 
 func (s *NeighborSet) String() string {
 	return strings.Join(s.List(), "\n")
-}
-
-func (s *NeighborSet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ToConfig())
 }
 
 type singleAsPathMatchMode int
@@ -736,10 +723,6 @@ func (s *AsPathSet) String() string {
 	return strings.Join(s.List(), "\n")
 }
 
-func (s *AsPathSet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ToConfig())
-}
-
 type regExpSet struct {
 	typ  DefinedType
 	name string
@@ -846,10 +829,6 @@ func (s *CommunitySet) String() string {
 	return strings.Join(s.List(), "\n")
 }
 
-func (s *CommunitySet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ToConfig())
-}
-
 var _regexpCommunity = regexp.MustCompile(`(\d+):(\d+)`)
 
 func ParseCommunity(arg string) (uint32, error) {
@@ -924,24 +903,6 @@ func ParseCommunityRegexp(arg string) (*regexp.Regexp, error) {
 	return regexp.Compile(arg)
 }
 
-func ParseExtCommunityRegexp(arg string) (bgp.ExtendedCommunityAttrSubType, *regexp.Regexp, error) {
-	var subtype bgp.ExtendedCommunityAttrSubType
-	elems := strings.SplitN(arg, ":", 2)
-	if len(elems) < 2 {
-		return subtype, nil, fmt.Errorf("invalid ext-community format([rt|soo]:<value>)")
-	}
-	switch strings.ToLower(elems[0]) {
-	case "rt":
-		subtype = bgp.EC_SUBTYPE_ROUTE_TARGET
-	case "soo":
-		subtype = bgp.EC_SUBTYPE_ROUTE_ORIGIN
-	default:
-		return subtype, nil, fmt.Errorf("unknown ext-community subtype. rt, soo is supported")
-	}
-	exp, err := ParseCommunityRegexp(elems[1])
-	return subtype, exp, err
-}
-
 type ExtCommunitySet struct {
 	regExpSet
 	subtypeList []bgp.ExtendedCommunityAttrSubType
@@ -978,10 +939,6 @@ func (s *ExtCommunitySet) String() string {
 	return strings.Join(s.List(), "\n")
 }
 
-func (s *ExtCommunitySet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ToConfig())
-}
-
 func (s *ExtCommunitySet) Append(arg DefinedSet) error {
 	err := s.regExpSet.Append(arg)
 	if err != nil {
@@ -1013,10 +970,6 @@ func (s *LargeCommunitySet) ToConfig() *config.LargeCommunitySet {
 
 func (s *LargeCommunitySet) String() string {
 	return strings.Join(s.List(), "\n")
-}
-
-func (s *LargeCommunitySet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ToConfig())
 }
 
 var _regexpCommunityLarge = regexp.MustCompile(`\d+:\d+:\d+`)
@@ -1608,10 +1561,6 @@ func (a *CommunityAction) ToConfig() *config.SetCommunity {
 	}
 }
 
-func (a *CommunityAction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.ToConfig())
-}
-
 // TODO: this is not efficient use of regexp, probably slow
 var _regexpCommunityReplaceString = regexp.MustCompile(`[\^\$]`)
 
@@ -1678,10 +1627,6 @@ func (a *ExtCommunityAction) String() string {
 	return fmt.Sprintf("%s[%s]", a.action, l)
 }
 
-func (a *ExtCommunityAction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.ToConfig())
-}
-
 type LargeCommunityAction struct {
 	action     config.BgpSetCommunityOptionType
 	list       []*bgp.LargeCommunity
@@ -1724,10 +1669,6 @@ func (a *LargeCommunityAction) String() string {
 	return fmt.Sprintf("%s[%s]", a.action, l)
 }
 
-func (a *LargeCommunityAction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.ToConfig())
-}
-
 type MedAction struct {
 	value  int64
 	action MedActionType
@@ -1767,10 +1708,6 @@ func (a *MedAction) String() string {
 	return string(a.ToConfig())
 }
 
-func (a *MedAction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.ToConfig())
-}
-
 var _regexpParseMedAction = regexp.MustCompile(`^(\+|\-)?(\d+)$`)
 
 type LocalPrefAction struct {
@@ -1792,10 +1729,6 @@ func (a *LocalPrefAction) ToConfig() uint32 {
 
 func (a *LocalPrefAction) String() string {
 	return fmt.Sprintf("%d", a.value)
-}
-
-func (a *LocalPrefAction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.ToConfig())
 }
 
 type AsPathPrependAction struct {
@@ -1854,10 +1787,6 @@ func (a *AsPathPrependAction) String() string {
 	return fmt.Sprintf("prepend %s %d times", c.As, c.RepeatN)
 }
 
-func (a *AsPathPrependAction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.ToConfig())
-}
-
 type NexthopAction struct {
 	value net.IP
 	self  bool
@@ -1887,10 +1816,6 @@ func (a *NexthopAction) ToConfig() config.BgpNextHopType {
 
 func (a *NexthopAction) String() string {
 	return string(a.ToConfig())
-}
-
-func (a *NexthopAction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.ToConfig())
 }
 
 type Statement struct {
@@ -1977,10 +1902,6 @@ func (s *Statement) ToConfig() *config.Statement {
 			return act
 		}(),
 	}
-}
-
-func (s *Statement) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ToConfig())
 }
 
 type opType int
