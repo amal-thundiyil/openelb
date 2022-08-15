@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: openelb-manager
 spec:
+  nodeSelector:
+    kubernetes.io/hostname: minikube
   template:
     spec:
       containers:
