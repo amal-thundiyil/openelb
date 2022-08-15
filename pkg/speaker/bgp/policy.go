@@ -11,6 +11,7 @@ import (
 	"github.com/openelb/openelb/pkg/speaker/bgp/table"
 	api "github.com/osrg/gobgp/api"
 	"github.com/osrg/gobgp/pkg/server"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -22,16 +23,20 @@ func (b *Bgp) UpdatePolicy(cm *corev1.ConfigMap) error {
 		return nil
 	}
 	path, err := writeToTempFile(policyConf)
+	b.log.Info("writing to temp file", "path", path)
 	defer os.RemoveAll(path)
 	if err != nil {
 		return err
 	}
 	newConfig, err := config.ReadConfigfile(path, "toml")
+	b.log.Info("read config file", "struct", newConfig)
 	if err != nil {
 		return err
 	}
 	p := config.ConfigSetToRoutingPolicy(newConfig)
+	b.log.Info("routing policy set", "struct", newConfig)
 	rp, err := table.NewAPIRoutingPolicyFromConfigStruct(p)
+	b.log.Info("api routing policy from struct", "struct", newConfig)
 	if err != nil {
 		b.log.Error(err, "failed to update policy config")
 		return err
@@ -40,6 +45,7 @@ func (b *Bgp) UpdatePolicy(cm *corev1.ConfigMap) error {
 		DefinedSets: rp.DefinedSets,
 		Policies:    rp.Policies,
 	})
+	b.log.Info("finally setting the policies", "error", err, "definedset", rp.DefinedSets, "policiy", rp.Policies)
 	if err != nil {
 		b.log.Info("successfully updated policy config")
 		return err
@@ -67,7 +73,7 @@ func (b *Bgp) AssignGlobalpolicy(ctx context.Context, bgpServer *server.BgpServe
 		}
 		return p
 	}
-
+	ctrl.Log.Info("Assigning global policies")
 	def := toDefaultTable(a.DefaultImportPolicy)
 	ps := toPolicies(a.ImportPolicyList)
 	err := bgpServer.SetPolicyAssignment(ctx, &api.SetPolicyAssignmentRequest{
@@ -78,11 +84,11 @@ func (b *Bgp) AssignGlobalpolicy(ctx context.Context, bgpServer *server.BgpServe
 			Default:  def,
 		}),
 	})
+	ctrl.Log.Info("setting import policy assignment", "default", def, "policies", ps)
 	if err != nil {
 		b.log.Info("failed setting policy assignment")
 		return err
 	}
-
 	def = toDefaultTable(a.DefaultExportPolicy)
 	ps = toPolicies(a.ExportPolicyList)
 	err = bgpServer.SetPolicyAssignment(ctx, &api.SetPolicyAssignmentRequest{
@@ -93,6 +99,7 @@ func (b *Bgp) AssignGlobalpolicy(ctx context.Context, bgpServer *server.BgpServe
 			Default:  def,
 		}),
 	})
+	ctrl.Log.Info("setting export policy assignment", "default", def, "policies", ps)
 	if err != nil {
 		b.log.Info("failed setting policy assignment")
 		return err
