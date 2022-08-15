@@ -23,13 +23,13 @@ func (b *Bgp) UpdatePolicy(cm *corev1.ConfigMap) error {
 		return nil
 	}
 	path, err := writeToTempFile(policyConf)
-	b.log.Info("writing to temp file", "path", path)
+	b.log.Info("amal: writing to temp file", "path", path)
 	defer os.RemoveAll(path)
 	if err != nil {
 		return err
 	}
 	newConfig, err := config.ReadConfigfile(path, "toml")
-	b.log.Info("read config file", "struct", newConfig)
+	ctrl.Log.Info("amal: read config file", "struct", newConfig, "error", err)
 	if err != nil {
 		return err
 	}

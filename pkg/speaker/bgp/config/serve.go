@@ -22,6 +22,7 @@ func ReadConfigfile(path, format string) (*BgpConfigSet, error) {
 	if err = v.UnmarshalExact(config); err != nil {
 		return nil, err
 	}
+	ctrl.Log.Info("amal: unmarsheldj", "config", config, "error", err)
 	return config, nil
 }
 
