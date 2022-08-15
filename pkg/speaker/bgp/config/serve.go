@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/spf13/viper"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type BgpConfigSet struct {
