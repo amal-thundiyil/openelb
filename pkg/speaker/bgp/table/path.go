@@ -17,7 +17,6 @@ package table
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"math"
 	"net"
@@ -121,14 +120,6 @@ var IntToRpkiValidationReasonTypeMap = map[int]RpkiValidationReasonType{
 	0: RPKI_VALIDATION_REASON_TYPE_NONE,
 	1: RPKI_VALIDATION_REASON_TYPE_AS,
 	2: RPKI_VALIDATION_REASON_TYPE_LENGTH,
-}
-
-type Validation struct {
-	Status          config.RpkiValidationResultType
-	Reason          RpkiValidationReasonType
-	Matched         []*ROA
-	UnmatchedAs     []*ROA
-	UnmatchedLength []*ROA
 }
 
 type Path struct {
@@ -893,30 +884,6 @@ func (lhs *Path) Equal(rhs *Path) bool {
 		return ret
 	}
 	return bytes.Equal(pattrs(lhs.GetPathAttrs()), pattrs(rhs.GetPathAttrs()))
-}
-
-func (path *Path) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		Nlri       bgp.AddrPrefixInterface      `json:"nlri"`
-		PathAttrs  []bgp.PathAttributeInterface `json:"attrs"`
-		Age        int64                        `json:"age"`
-		Withdrawal bool                         `json:"withdrawal,omitempty"`
-		Validation string                       `json:"validation,omitempty"`
-		SourceID   net.IP                       `json:"source-id,omitempty"`
-		NeighborIP net.IP                       `json:"neighbor-ip,omitempty"`
-		Stale      bool                         `json:"stale,omitempty"`
-		UUID       string                       `json:"uuid,omitempty"`
-		ID         uint32                       `json:"id,omitempty"`
-	}{
-		Nlri:       path.GetNlri(),
-		PathAttrs:  path.GetPathAttrs(),
-		Age:        path.GetTimestamp().Unix(),
-		Withdrawal: path.IsWithdraw,
-		SourceID:   path.GetSource().ID,
-		NeighborIP: path.GetSource().Address,
-		Stale:      path.IsStale(),
-		ID:         path.GetNlri().PathIdentifier(),
-	})
 }
 
 func (lhs *Path) Compare(rhs *Path) int {

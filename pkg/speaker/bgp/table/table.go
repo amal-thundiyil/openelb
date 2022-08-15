@@ -37,7 +37,6 @@ const (
 type PolicyOptions struct {
 	Info       *PeerInfo
 	OldNextHop net.IP
-	Validate   func(*Path) *Validation
 }
 
 type DefinedType int
@@ -128,18 +127,6 @@ const (
 	MED_ACTION_MOD MedActionType = iota
 	MED_ACTION_REPLACE
 )
-
-var CommunityOptionNameMap = map[config.BgpSetCommunityOptionType]string{
-	config.BGP_SET_COMMUNITY_OPTION_TYPE_ADD:     "add",
-	config.BGP_SET_COMMUNITY_OPTION_TYPE_REMOVE:  "remove",
-	config.BGP_SET_COMMUNITY_OPTION_TYPE_REPLACE: "replace",
-}
-
-var CommunityOptionValueMap = map[string]config.BgpSetCommunityOptionType{
-	CommunityOptionNameMap[config.BGP_SET_COMMUNITY_OPTION_TYPE_ADD]:     config.BGP_SET_COMMUNITY_OPTION_TYPE_ADD,
-	CommunityOptionNameMap[config.BGP_SET_COMMUNITY_OPTION_TYPE_REMOVE]:  config.BGP_SET_COMMUNITY_OPTION_TYPE_REMOVE,
-	CommunityOptionNameMap[config.BGP_SET_COMMUNITY_OPTION_TYPE_REPLACE]: config.BGP_SET_COMMUNITY_OPTION_TYPE_REPLACE,
-}
 
 type ConditionType int
 
@@ -306,8 +293,6 @@ func (p *Prefix) PrefixString() string {
 	}
 	return p.Prefix.String()
 }
-
-var _regexpPrefixRange = regexp.MustCompile(`(\d+)\.\.(\d+)`)
 
 type PrefixSet struct {
 	name   string
@@ -624,13 +609,6 @@ func (m *singleAsPathMatch) Match(aspath []uint32) bool {
 	}
 	return false
 }
-
-var (
-	_regexpLeftMostRe = regexp.MustCompile(`^\^([0-9]+)_$`)
-	_regexpOriginRe   = regexp.MustCompile(`^_([0-9]+)\$$`)
-	_regexpIncludeRe  = regexp.MustCompile("^_([0-9]+)_$")
-	_regexpOnlyRe     = regexp.MustCompile(`^\^([0-9]+)\$$`)
-)
 
 type AsPathSet struct {
 	typ        DefinedType
@@ -1708,7 +1686,6 @@ func (a *MedAction) String() string {
 	return string(a.ToConfig())
 }
 
-var _regexpParseMedAction = regexp.MustCompile(`^(\+|\-)?(\d+)$`)
 
 type LocalPrefAction struct {
 	value uint32
