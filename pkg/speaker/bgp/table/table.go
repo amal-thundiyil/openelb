@@ -1686,7 +1686,6 @@ func (a *MedAction) String() string {
 	return string(a.ToConfig())
 }
 
-
 type LocalPrefAction struct {
 	value uint32
 }
