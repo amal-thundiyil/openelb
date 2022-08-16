@@ -28,6 +28,7 @@ import (
 	api "github.com/osrg/gobgp/api"
 	"github.com/osrg/gobgp/pkg/packet/bgp"
 	log "github.com/sirupsen/logrus"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -1801,15 +1802,6 @@ type Statement struct {
 	ModActions  []Action
 }
 
-// evaluate each condition in the statement according to MatchSetOptions
-func (s *Statement) Evaluate(p *Path, options *PolicyOptions) bool {
-	for _, c := range s.Conditions {
-		if !c.Evaluate(p, options) {
-			return false
-		}
-	}
-	return true
-}
 func (s *Statement) ToConfig() *config.Statement {
 	return &config.Statement{
 		Name: s.Name,
@@ -1902,19 +1894,6 @@ func (p *Policy) ToConfig() *config.PolicyDefinition {
 		Name:       p.Name,
 		Statements: ss,
 	}
-}
-
-func (p *Policy) FillUp(m map[string]*Statement) error {
-	stmts := make([]*Statement, 0, len(p.Statements))
-	for _, x := range p.Statements {
-		y, ok := m[x.Name]
-		if !ok {
-			return fmt.Errorf("not found statement %s", x.Name)
-		}
-		stmts = append(stmts, y)
-	}
-	p.Statements = stmts
-	return nil
 }
 
 func (lhs *Policy) Add(rhs *Policy) error {
@@ -2179,6 +2158,7 @@ func NewAPIPolicyAssignmentFromTableStruct(t *PolicyAssignment) *api.PolicyAssig
 			for _, p := range t.Policies {
 				l = append(l, NewAPIPolicyFromTableStruct(p))
 			}
+			ctrl.Log.Info("debug: the statements?", "policies", l)
 			return l
 		}(),
 	}
